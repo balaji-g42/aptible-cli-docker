@@ -10,7 +10,7 @@ services:
     networks:
       - aptible-net
     ports:
-      - "3080:3080"
+      - "3080:3000"
       - "54321:54321"
       - "51597:51597"
     env_file:
