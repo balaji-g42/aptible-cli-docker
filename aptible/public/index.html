@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Aptible Interactive Terminal</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      width: 100vw;
+      background: #111;
+      overflow: hidden;
+    }
+    #terminal {
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <div id="terminal"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
+
+  <script>
+    const term = new Terminal({
+      cursorBlink: true,
+      fontSize: 14,
+      fontFamily: '"Courier New", monospace',
+      theme: {
+        background: "#111",
+        foreground: "#00ff00",
+        cursor: "#00ff00",
+        selection: "rgba(0, 255, 0, 0.3)"
+      },
+      scrollback: 1000
+    });
+
+    const fitAddon = new FitAddon.FitAddon();
+    term.loadAddon(fitAddon);
+
+    const terminalEl = document.getElementById("terminal");
+    term.open(terminalEl);
+
+    // 🔑 THIS IS THE KEY LINE
+    fitAddon.fit();
+
+    // Resize when window size changes
+    window.addEventListener("resize", () => {
+      fitAddon.fit();
+    });
+
+    const ws = new WebSocket(`ws://${location.host}`);
+
+    ws.onopen = () => {
+      term.focus();
+    };
+
+    ws.onmessage = (event) => {
+      term.write(event.data);
+    };
+
+    term.onData((data) => {
+      ws.send(data);
+    });
+
+    ws.onclose = () => {
+      term.writeln("");
+      term.writeln("❌ Disconnected from terminal");
+      term.writeln("🔄 Refresh the page to reconnect");
+    };
+
+    ws.onerror = (error) => {
+      term.writeln("");
+      term.writeln(`💥 WebSocket error`);
+    };
+  </script>
+</body>
+</html>

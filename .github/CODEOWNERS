@@ -1,0 +1,27 @@
+# CODEOWNERS file for Aptible Tunnel Service for Docker
+# This file defines who needs to review and approve code changes
+
+# Default owners for everything in the repo
+* @balajig4292
+
+# Docker and infrastructure files require DevOps review
+docker-compose.yml @balajig4292
+aptible/Dockerfile @balajig4292
+aptible/startup.sh @balajig4292
+
+# GitHub Actions and CI/CD configuration
+.github/ @balajig4292
+.github/workflows/ @balajig4292
+
+# Documentation
+README.md @balajig4292
+aptible/README.md @balajig4292
+LICENSE @balajig4292
+
+# Configuration templates
+aptible/.env.template @balajig4292
+
+# Terminal UI application code
+aptible/terminal-server.js @balajig4292
+aptible/package.json @balajig4292
+aptible/public/ @balajig4292

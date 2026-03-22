@@ -1,0 +1,21 @@
+# Environment configuration (use .env.template as reference)
+.env
+
+# Aptible configuration directory
+aptible-config/
+
+# Logs
+*.log
+
+# Node modules
+node_modules/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
