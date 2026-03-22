@@ -55,7 +55,6 @@ COPY aptible/public ./public
 # Startup script and configuration
 # -------------------------------------------------
 COPY aptible/startup.sh /usr/local/bin/startup.sh
-COPY aptible/.env /usr/local/bin/.env
 RUN sed -i 's/\r$//' /usr/local/bin/startup.sh \
  && chmod +x /usr/local/bin/startup.sh
 
