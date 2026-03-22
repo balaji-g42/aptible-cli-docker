@@ -2,7 +2,9 @@
 # Aptible Tunnel Service with Terminal UI
 # Provides PostgreSQL and Redis tunnels via socat
 # =================================================
-FROM debian:bookworm-slim
+# Force amd64 platform - aptible CLI only supports amd64
+# ARM users (M1/M2 Macs) will run via QEMU emulation
+FROM --platform=linux/amd64 debian:bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV HOME=/root
