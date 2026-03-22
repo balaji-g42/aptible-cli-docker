@@ -62,7 +62,7 @@ jobs:
       - name: Verify Docker image
         run: |
           docker pull ghcr.io/${{ github.repository }}:latest
-          docker run --rm ghcr.io/${{ github.repository }}:latest aptible --version
+          docker run --rm ghcr.io/${{ github.repository }}:latest aptible version
 
       - name: Post-push summary
         run: |
