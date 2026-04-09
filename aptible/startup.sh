@@ -2,32 +2,18 @@
 set -euo pipefail
 
 # ------------------------------------------------
-# Load configuration from .env file
-# ------------------------------------------------
-ENV_FILE="${BASH_SOURCE[0]%/*}/.env"
-
-if [ -f "$ENV_FILE" ]; then
-  echo "[aptible-tunnel] Loading configuration from $ENV_FILE"
-  set -a
-  source "$ENV_FILE"
-  set +a
-else
-  echo "[aptible-tunnel] Warning: .env file not found at $ENV_FILE, using default values"
-fi
-
-# ------------------------------------------------
 # Configuration with defaults
 # ------------------------------------------------
-TOKEN_FILE="${TOKEN_FILE:-/root/.aptible/tokens.json}"
+TOKEN_FILE="${TOKEN_FILE:-/home/aptible/.aptible/tokens.json}"
 
 PG1_APP="${PG1_APP:-postgresql-db}"
-PG1_INTERNAL_PORT="${PG1_INTERNAL_PORT:-54321}"
+PG1_INTERNAL_PORT="${PG1_INTERNAL_PORT:-25432}"
 PG1_PUBLIC_PORT="${PG1_PUBLIC_PORT:-54321}"
 
 # configure second PostgreSQL tunnel if needed
 # PG2_APP="${PG2_APP:-postgresql-db2}"
-# PG2_INTERNAL_PORT="${PG2_INTERNAL_PORT:-54322}"
-# PG2_PUBLIC_PORT="${PG2_PUBLIC_PORT:-61322}"
+# PG2_INTERNAL_PORT="${PG2_INTERNAL_PORT:-25433}"
+# PG2_PUBLIC_PORT="${PG2_PUBLIC_PORT:-54322}"
 
 REDIS_APP="${REDIS_APP:-redis-db}"
 REDIS_INTERNAL_PORT="${REDIS_INTERNAL_PORT:-51596}"
@@ -41,7 +27,7 @@ UI_LOG="${UI_LOG:-/var/log/terminal-ui.log}"
 UI_PORT="${UI_PORT:-3000}"
 
 export HOME="${HOME:-/root}"
-export APTIBLE_HOME="${APTIBLE_HOME:-/root/.aptible}"
+export APTIBLE_HOME="${APTIBLE_HOME:-/home/aptible/.aptible}"
 
 # ------------------------------------------------
 # Logging helpers
@@ -83,21 +69,23 @@ start_tunnels() {
 
   log "Starting PostgreSQL tunnels..."
 
-  aptible db:tunnel "$PG1_APP" \
+  (echo 'y' | aptible db:tunnel "$PG1_APP" \
     --port="$PG1_INTERNAL_PORT" \
-    > "$PG1_LOG" 2>&1 &
+    > "$PG1_LOG" 2>&1) &
   PG1_PID=$!
 
-  aptible db:tunnel "$PG2_APP" \
-    --port="$PG2_INTERNAL_PORT" \
-    > "$PG2_LOG" 2>&1 &
-  PG2_PID=$!
+  if [ -n "${PG2_APP:-}" ]; then
+    (echo 'y' | aptible db:tunnel "$PG2_APP" \
+      --port="$PG2_INTERNAL_PORT" \
+      > "$PG2_LOG" 2>&1) &
+    PG2_PID=$!
+  fi
 
   log "Starting Redis tunnel..."
 
-  aptible db:tunnel "$REDIS_APP" \
+  (echo 'y' | aptible db:tunnel "$REDIS_APP" \
     --port="$REDIS_INTERNAL_PORT" \
-    > "$REDIS_LOG" 2>&1 &
+    > "$REDIS_LOG" 2>&1) &
   REDIS_PID=$!
 
   sleep 3
@@ -176,14 +164,18 @@ start_pg_proxy() {
         TCP:127.0.0.1:${PG1_INTERNAL_PORT} &
   PG1_SOCAT_PID=$!
 
-  socat TCP-LISTEN:${PG2_PUBLIC_PORT},fork,reuseaddr,bind=0.0.0.0 \
-        TCP:127.0.0.1:${PG2_INTERNAL_PORT} &
-  PG2_SOCAT_PID=$!
+  if [ -n "${PG2_APP:-}" ]; then
+    socat TCP-LISTEN:${PG2_PUBLIC_PORT},fork,reuseaddr,bind=0.0.0.0 \
+          TCP:127.0.0.1:${PG2_INTERNAL_PORT} &
+    PG2_SOCAT_PID=$!
+  fi
 
   sleep 2
 
   ss -lnt | grep ":${PG1_PUBLIC_PORT}" >/dev/null || fatal "PG1 proxy failed"
-  ss -lnt | grep ":${PG2_PUBLIC_PORT}" >/dev/null || fatal "PG2 proxy failed"
+  if [ -n "${PG2_APP:-}" ]; then
+    ss -lnt | grep ":${PG2_PUBLIC_PORT}" >/dev/null || fatal "PG2 proxy failed"
+  fi
 
   log "PostgreSQL proxies started"
 }
@@ -266,8 +258,8 @@ start_terminal_ui() {
 
   log "Starting Terminal UI on http://localhost:${UI_PORT}"
 
-  cd /app
-  PORT=${UI_PORT} npm start > "$UI_LOG" 2>&1 &
+  # Run ttyd as root with aptible user for the shell
+  HOME=/home/aptible APTIBLE_HOME=/root/.aptible BASH_ENV="" /usr/local/bin/ttyd -p ${UI_PORT} -u 1000 -g 1000 -w /home/aptible --writable bash > "$UI_LOG" 2>&1 &
   UI_PID=$!
 }
 
@@ -281,7 +273,9 @@ monitor_processes() {
   log "======================================"
 
   log "PG1: 0.0.0.0:${PG1_PUBLIC_PORT} → 127.0.0.1:${PG1_INTERNAL_PORT}"
-  log "PG2: 0.0.0.0:${PG2_PUBLIC_PORT} → 127.0.0.1:${PG2_INTERNAL_PORT}"
+  if [ -n "${PG2_APP:-}" ]; then
+    log "PG2: 0.0.0.0:${PG2_PUBLIC_PORT} → 127.0.0.1:${PG2_INTERNAL_PORT}"
+  fi
   log "Redis TLS: 0.0.0.0:${REDIS_PUBLIC_PORT}"
   log "Terminal UI: http://localhost:${UI_PORT}"
 
@@ -291,10 +285,10 @@ monitor_processes() {
 
     for PID in \
     "$PG1_PID" \
-    "$PG2_PID" \
+    "${PG2_PID:-}" \
     "$REDIS_PID" \
     "$PG1_SOCAT_PID" \
-    "$PG2_SOCAT_PID" \
+    "${PG2_SOCAT_PID:-}" \
     "$REDIS_SOCAT_PID" \
     "${UI_PID:-}"
     do
@@ -351,11 +345,15 @@ rm -f /root/.aptible/ssh/id_rsa /root/.aptible/ssh/id_rsa.pub 2>/dev/null || tru
 start_tunnels
 
 wait_for_tunnel_ready "$PG1_LOG" "PostgreSQL-1"
-wait_for_tunnel_ready "$PG2_LOG" "PostgreSQL-2"
+if [ -n "${PG2_APP:-}" ]; then
+  wait_for_tunnel_ready "$PG2_LOG" "PostgreSQL-2"
+fi
 wait_for_tunnel_ready "$REDIS_LOG" "Redis"
 
 wait_for_port_binding "$PG1_INTERNAL_PORT" "PostgreSQL-1"
-wait_for_port_binding "$PG2_INTERNAL_PORT" "PostgreSQL-2"
+if [ -n "${PG2_APP:-}" ]; then
+  wait_for_port_binding "$PG2_INTERNAL_PORT" "PostgreSQL-2"
+fi
 wait_for_port_binding "$REDIS_INTERNAL_PORT" "Redis"
 
 start_pg_proxy

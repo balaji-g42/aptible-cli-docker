@@ -11,15 +11,17 @@ services:
       - aptible-net
     ports:
       - "3080:3000"
-      - "54321:54321"
-      - "51597:51597"
+      - "54324:54321"
+      - "51598:51597"
     env_file:
       - ./aptible/.env
     volumes:
-      - ./aptible-config:/root/.aptible  #persist aptible configuration
+      - ./aptible-config:/home/aptible/.aptible  #persist aptible configuration
     tty: true
     stdin_open: true
     restart: unless-stopped
+    mem_limit: 256m
+    cpus: "0.25"
     logging:
       driver: "json-file"
       options:
@@ -52,4 +54,3 @@ networks:
   aptible-net:
     driver: bridge
     name: aptible-net
-    external: true

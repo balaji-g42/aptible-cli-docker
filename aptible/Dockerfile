@@ -18,17 +18,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     bash \
-    nodejs \
-    npm \
     socat \
-    stunnel4 \
     netcat-openbsd \
     iproute2 \
     procps \
     python3 \
-    make \
-    g++ \
     && rm -rf /var/lib/apt/lists/*
+
+# -------------------------------------------------
+# Install ttyd
+# -------------------------------------------------
+RUN curl -L https://github.com/tsl0922/ttyd/releases/latest/download/ttyd.x86_64 -o /usr/local/bin/ttyd \
+ && chmod +x /usr/local/bin/ttyd
 
 # -------------------------------------------------
 # Install Aptible Toolbelt
@@ -41,15 +42,16 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # -------------------------------------------------
-# Terminal UI Setup
+# Create rootless user aptible
 # -------------------------------------------------
-WORKDIR /app
+RUN useradd -m -s /bin/bash aptible \
+ && mkdir -p /home/aptible/.aptible \
+ && cp -r /etc/skel/. /home/aptible/ \
+ && chown -R aptible:aptible /home/aptible
 
-COPY aptible/package.json ./
-RUN npm install
-
-COPY aptible/terminal-server.js ./
-COPY aptible/public ./public
+# -------------------------------------------------
+# Terminal UI Setup (removed custom server)
+# -------------------------------------------------
 
 # -------------------------------------------------
 # Startup script and configuration
