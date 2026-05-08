@@ -2,9 +2,12 @@
 set -euo pipefail
 
 # ------------------------------------------------
-# Configuration with defaults
+# Configuration — paths are hardcoded to avoid Windows MSYS path translation
+# when Docker Compose reads the .env file on Windows hosts.
 # ------------------------------------------------
-TOKEN_FILE="${TOKEN_FILE:-/home/aptible/.aptible/tokens.json}"
+export HOME=/home/aptible
+export APTIBLE_HOME=/home/aptible/.aptible
+TOKEN_FILE=/home/aptible/.aptible/tokens.json
 
 PG1_APP="${PG1_APP:-postgresql-db}"
 PG1_INTERNAL_PORT="${PG1_INTERNAL_PORT:-25432}"
@@ -20,14 +23,11 @@ REDIS_INTERNAL_PORT="${REDIS_INTERNAL_PORT:-51596}"
 REDIS_PUBLIC_PORT="${REDIS_PUBLIC_PORT:-51597}"
 REDIS_TLS_EXTRA_DOMAINS="${REDIS_TLS_EXTRA_DOMAINS:-}"
 
-PG1_LOG="${PG1_LOG:-/var/log/postgresql1-tunnel.log}"
-# PG2_LOG="${PG2_LOG:-/var/log/postgresql2-tunnel.log}"
-REDIS_LOG="${REDIS_LOG:-/var/log/redis-tunnel.log}"
-UI_LOG="${UI_LOG:-/var/log/terminal-ui.log}"
+PG1_LOG=/var/log/postgresql1-tunnel.log
+# PG2_LOG=/var/log/postgresql2-tunnel.log
+REDIS_LOG=/var/log/redis-tunnel.log
+UI_LOG=/var/log/terminal-ui.log
 UI_PORT="${UI_PORT:-3000}"
-
-export HOME="${HOME:-/root}"
-export APTIBLE_HOME="${APTIBLE_HOME:-/home/aptible/.aptible}"
 
 # ------------------------------------------------
 # Logging helpers
