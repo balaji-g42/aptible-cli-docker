@@ -336,6 +336,10 @@ log "======================================"
 log "Aptible Tunnel Service Starting"
 log "======================================"
 
+# Ensure ssh dir exists and is writable by aptible user (volume mount may have overwritten it)
+mkdir -p /home/aptible/.aptible/ssh
+chown -R aptible:aptible /home/aptible/.aptible
+
 start_terminal_ui
 
 wait_for_token

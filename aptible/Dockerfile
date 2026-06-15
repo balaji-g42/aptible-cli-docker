@@ -45,7 +45,7 @@ RUN apt-get update \
 # Create rootless user aptible
 # -------------------------------------------------
 RUN useradd -m -s /bin/bash aptible \
- && mkdir -p /home/aptible/.aptible/ssh \
+ && mkdir -p /home/aptible/.aptible \
  && cp -r /etc/skel/. /home/aptible/ \
  && chown -R aptible:aptible /home/aptible
 
