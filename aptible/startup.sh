@@ -259,7 +259,7 @@ start_terminal_ui() {
   log "Starting Terminal UI on http://localhost:${UI_PORT}"
 
   # Run ttyd as root with aptible user for the shell
-  HOME=/home/aptible APTIBLE_HOME=/root/.aptible BASH_ENV="" /usr/local/bin/ttyd -p ${UI_PORT} -u 1000 -g 1000 -w /home/aptible --writable bash > "$UI_LOG" 2>&1 &
+  HOME=/home/aptible APTIBLE_HOME=/home/aptible/.aptible BASH_ENV="" /usr/local/bin/ttyd -p ${UI_PORT} -u 1000 -g 1000 -w /home/aptible --writable bash > "$UI_LOG" 2>&1 &
   UI_PID=$!
 }
 
