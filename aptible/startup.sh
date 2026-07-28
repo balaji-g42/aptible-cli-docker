@@ -106,6 +106,10 @@ wait_for_tunnel_ready() {
 
     if grep -q "Connected. Ctrl-C to close connection." "$LOG_FILE"; then
       log "$NAME tunnel READY"
+      CONN_LINE=$(grep -E "://.*@" "$LOG_FILE" | tail -n 1)
+      if [ -n "$CONN_LINE" ]; then
+        log "$NAME tunnel connection: $CONN_LINE"
+      fi
       return 0
     fi
 
