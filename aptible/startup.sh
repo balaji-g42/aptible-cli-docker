@@ -41,6 +41,28 @@ fatal() {
   exit 1
 }
 
+# Print a connection string in a bordered box so it stands out from
+# the surrounding log stream and is easy to spot/copy.
+print_credentials_box() {
+  local NAME="$1"
+  local CONN_LINE="$2"
+  local TITLE=" $NAME tunnel connection "
+  local WIDTH=${#CONN_LINE}
+  if [ ${#TITLE} -gt "$WIDTH" ]; then
+    WIDTH=${#TITLE}
+  fi
+  local BORDER
+  BORDER=$(printf '%*s' "$((WIDTH + 2))" '' | tr ' ' '=')
+
+  echo ""
+  echo "+${BORDER}+"
+  printf "|%-*s|\n" "$((WIDTH + 2))" "$TITLE"
+  echo "+${BORDER}+"
+  printf "| %-*s |\n" "$WIDTH" "$CONN_LINE"
+  echo "+${BORDER}+"
+  echo ""
+}
+
 # ------------------------------------------------
 # Wait for Aptible token
 # ------------------------------------------------
@@ -108,7 +130,7 @@ wait_for_tunnel_ready() {
       log "$NAME tunnel READY"
       CONN_LINE=$(grep -E "://.*@" "$LOG_FILE" | tail -n 1)
       if [ -n "$CONN_LINE" ]; then
-        log "$NAME tunnel connection: $CONN_LINE"
+        print_credentials_box "$NAME" "$CONN_LINE"
       fi
       return 0
     fi
